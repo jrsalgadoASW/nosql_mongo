@@ -6,29 +6,7 @@ database = client["Customs"]
 
 # schemas
 
-country_schema = {
-    "CountryCod": {"type": "number", "required": True},
-    "CountryName": {"type": "string"},
-}
-
-date_schema = {
-    "DateYear": {"type": "number"},
-    "DateMonth": {"type": "number"},
-    "DateDay": {"type": "number"},
-    "DateHour": {"type": "number"},
-    "DateWeekDay": {"type": "number"},
-    "DateWeekDayName": {"type": "string"},
-    "DateMonthName": {"type": "string"},
-    "Semester": {"type": "string"},
-}
-
-product_schema = {
-    "Cod_Item": {"type": "string"},
-    "Item": {"type": "string"},
-    "Tipo_item": {"type": "string"},
-    "Unidad_medida": {"type": "string"},
-}
-
+#TODO: Create Schemas to make sure insertions are correct. 
 
 # Create tables
 
