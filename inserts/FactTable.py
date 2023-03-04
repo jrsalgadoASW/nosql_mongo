@@ -1,8 +1,20 @@
 from pymongo import MongoClient
+from fact_table.dates.fecha_rechazo import (
+    fecha_rechazo_stage,
+    fecha_rechazo_unwind_stage,
+    projection_pipeline,
+    fecha_rechazo_pipeline,
+)
+from fact_table.dates.fecha_aprobacion import (
+    fecha_aprobacion_stage,
+    fecha_aprobacion_unwind_stage,
+    projection_aprobacion,
+)
 
 client = MongoClient("mongodb://localhost:27017/")
 database = client["Customs"]
 data_semilla = database.get_collection("DataSemilla")
+fact_test = database.get_collection("fact_test")
 
 # FECHAS
 # FECHAS LABELS
@@ -12,57 +24,6 @@ FechaDefinitivoID_Label = "FechaDefinitivoID"
 FechaRevisionID_Label = "FechaRevisionID"
 FechaDigitalizacionID_Label = "FechaDigitalizacionID"
 
-# Dim Fechas label
-dim_date_label = "DimDate"
-
-
-date_parsing_operation = {
-    "$dateFromString": {
-        "dateString": "$curr_date",
-        "format": "%d/%m/%Y %H:%M",
-    },
-}
-
-# Fechas Pipeline
-fecha_rechazo_conditions = {
-    "$match": {
-        "$expr": {
-            "$and": [
-                {
-                    "$eq": [
-                        {"$dayOfWeek": "$FECHA_RECHAZO"},
-                        "$DateDay",
-                    ]
-                },
-                {
-                    "$eq": [
-                        {"$month": "$FECHA_RECHAZO"},
-                        "$DateMonth",
-                    ]
-                },
-                {
-                    "$eq": [
-                        {"$year": "$FECHA_RECHAZO"},
-                        "$DateYear",
-                    ]
-                },
-                {
-                    "$eq": [
-                        {"$hour": "$FECHA_RECHAZO"},
-                        "$DateHour",
-                    ]
-                },
-            ]
-        },
-    },
-}
-fecha_rechazo_pipeline = {
-    "$lookup": {
-        "from": "DimDate",
-        "pipeline": [fecha_rechazo_conditions],
-        "as": "ddRechazo",
-    }
-}
 
 ProductoID_Label = "ProductoID"
 
@@ -87,7 +48,105 @@ Fletes_Label = "FLETES"
 Fob_Label = "FOB"
 
 
-data_semilla_pipeline = [fecha_rechazo_pipeline]
+def date_conditions(col_name: str):
+    date_condition = {
+        "$match": {
+            "$expr": {
+                "$and": [
+                    {
+                        "$eq": [
+                            {"$dayOfWeek": "$" + col_name},
+                            "$DateDay",
+                        ]
+                    },
+                    {
+                        "$eq": [
+                            {"$month": "$" + col_name},
+                            "$DateMonth",
+                        ]
+                    },
+                    {
+                        "$eq": [
+                            {"$year": "$" + col_name},
+                            "$DateYear",
+                        ]
+                    },
+                    {
+                        "$eq": [
+                            {"$hour": "$" + col_name},
+                            "$DateHour",
+                        ]
+                    },
+                ]
+            },
+        },
+    }
+    return date_condition
 
+
+# data_semilla_pipeline = [
+#     fecha_rechazo_stage,
+#     fecha_rechazo_unwind_stage,
+#     projection_pipeline
+# ]
+
+# d = [
+#     {
+#         "$lookup": {
+#             "from": "customfield.values",
+#             "let": {emp_id: "$_id"},
+#             pipeline: [
+#                 {"$match": {"$expr": {"$eq": ["$employee", "$$emp_id"]}}},
+#                 {
+#                     "$lookup": {
+#                         "from": "customfields",
+#                         "let": {custom_field: "$customfield"},
+#                         pipeline: [
+#                             {"$match": {"$expr": {"$eq": ["$_id", "$$custom_field"]}}}
+#                         ],
+#                         "as": "customfield",
+#                     }
+#                 },
+#             ],
+#             "as": "customfieldvalues",
+#         }
+#     }
+# ]
+
+data_semilla_pipeline = [
+    # {
+    #     "$facet": {
+    #         "fecha_rechazo_pipeline": fecha_rechazo_pipeline,
+    #     },
+    # },
+    # {"$unwind": "$fecha_rechazo_pipeline"},
+    # {
+    #     "$project": {
+    #         FechaRechazoID_Label: "$fecha_rechazo_pipeline.Fecha_Rechazo",
+    #     }
+    # },
+    fecha_rechazo_stage,
+    fecha_rechazo_unwind_stage,
+    # projection_pipeline,
+    fecha_aprobacion_stage,
+    fecha_aprobacion_unwind_stage,
+    # projection_aprobacion,
+    # {
+    #     "$facet": {
+    #         "fecha_aprobacion_pipeline": fecha_aprobacion_pipeline,
+    #     },
+    # },
+    # {"$unwind": "$fecha_aprobacion_pipeline"},
+    {
+        "$project": {
+            FechaAprobacionID_Label: "$ddAprobacion._id",
+            FechaRechazoID_Label: "$ddRechazo._id",
+        },
+    },
+    {"$out": "fact_test"},
+]
+
+fact_test.drop()
 res = data_semilla.aggregate(pipeline=data_semilla_pipeline)
-print(len(list(res)))
+
+print(fact_test.count_documents({}))
