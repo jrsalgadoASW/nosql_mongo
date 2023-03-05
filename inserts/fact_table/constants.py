@@ -1,7 +1,3 @@
-from pymongo import MongoClient
-from fact_table.dates import get_date_lookup, get_date_unwind
-
-
 # Fact table labels
 fact_table_label = {
     "fecha_rechazo": "FechaRechazoID",
@@ -9,7 +5,6 @@ fact_table_label = {
     "fecha_definitivo": "FechaDefinitivoID",
     "fecha_revision": "FechaRevisionID",
     "fecha_digitalizacion": "FechaDigitalizacionID",
-    "fecha_ejecucion": "FechaEjecucionID",
     "producto_id": "ProductoID",
     "pais_origen": "PaisOrigenID",
     "pais_bandera": "PaisBanderaID",
@@ -138,47 +133,3 @@ property_name = {
     "unidad_medida": "dd_unidad_medida",
     "unidad_subpartida": "dd_unidad_subpartida",
 }
-
-
-client = MongoClient("mongodb://localhost:27017/")
-database = client["Customs"]
-data_semilla = database.get_collection("DataSemilla")
-fact_test = database.get_collection("fact_test")
-
-data_semilla_pipeline = [
-    # Fechas
-    get_date_lookup(table_name=ds_labels["fecha_rechazo"], field_name=property_name["fecha_rechazo"]),
-    get_date_unwind(field_name=property_name["fecha_rechazo"]),
-
-    get_date_lookup(table_name=ds_labels["fecha_ejecucion"], field_name=property_name["fecha_ejecucion"]),
-    get_date_unwind(field_name=property_name["fecha_ejecucion"]),
-
-    get_date_lookup(table_name=ds_labels["fecha_digitalizacion"], field_name=property_name["fecha_digitalizacion"]),
-    get_date_unwind(field_name=property_name["fecha_digitalizacion"]),
-
-    get_date_lookup(table_name=ds_labels["fecha_definitivo"], field_name=property_name["fecha_definitivo"]),
-    get_date_unwind(field_name=property_name["fecha_definitivo"]),
-
-    get_date_lookup(table_name=ds_labels["fecha_aprobacion"], field_name=property_name["fecha_aprobacion"]),
-    get_date_unwind(field_name=property_name["fecha_aprobacion"]),
-
-    get_date_lookup(table_name=ds_labels["fecha_revision"], field_name=property_name["fecha_revision"]),
-    get_date_unwind(field_name=property_name["fecha_revision"]),
-    {
-        "$project": {
-            #Fechas
-            fact_table_label["fecha_rechazo"]: "$" + property_name["fecha_rechazo"] + "._id",
-            fact_table_label["fecha_ejecucion"]: "$" + property_name["fecha_ejecucion"] + "._id",
-            fact_table_label["fecha_digitalizacion"]: "$" + property_name["fecha_digitalizacion"] + "._id",
-            fact_table_label["fecha_definitivo"]: "$" + property_name["fecha_definitivo"] + "._id",
-            fact_table_label["fecha_aprobacion"]: "$" + property_name["fecha_aprobacion"] + "._id",
-            fact_table_label["fecha_revision"]: "$" + property_name["fecha_revision"] + "._id",
-        },
-    },
-    {"$out": "fact_test"},
-]
-
-fact_test.drop()
-res = data_semilla.aggregate(pipeline=data_semilla_pipeline)
-
-print(fact_test.count_documents({}))
