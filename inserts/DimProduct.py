@@ -1,4 +1,4 @@
-from pymongo import MongoClient
+from pymongo import MongoClient, errors as pymongoErrors, ASCENDING, DESCENDING
 
 # Connect to MongoDB server
 client = MongoClient("mongodb://localhost:27017/")
@@ -17,9 +17,9 @@ pipeline = [
         }
     },
     {
-        #Project only relevant fields
+        # Project only relevant fields
         "$project": {
-            "_id":0,
+            "_id": 0,
             "Cod_item": "$_id.cod_item",
             "Item": "$_id.item",
             "Tipo_item": "$_id.tipo_item",
@@ -29,8 +29,26 @@ pipeline = [
 ]
 
 
+try:
+    db = database["DimProduct"]
+    db.drop()
+except pymongoErrors.CollectionInvalid:
+    print("skipping drop")
+
 dim_product = database.get_collection("DimProduct")
+
+
 dim_product.insert_many(data_semilla.aggregate(pipeline=pipeline))
+dim_product.create_index(
+    [
+        ("Cod_item", ASCENDING),
+        ("Item", ASCENDING),
+        ("Tipo_item", ASCENDING),
+        ("Unidad_medida", ASCENDING),
+    ],
+    unique=True,
+    name="PK_Product"
+)
 
 
 client.close()

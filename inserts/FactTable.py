@@ -1,5 +1,7 @@
 from pymongo import MongoClient
 from fact_table.dates import get_date_lookup, get_date_unwind
+from fact_table.insert_queries import get_lookup, get_unwind
+from fact_table.products import get_product_condition
 
 
 # Fact table labels
@@ -132,11 +134,13 @@ property_name = {
     "sndeclaracion": "dd_sndeclaracion",
     "subpartida": "dd_subpartida",
     "tasa_cambio": "dd_tasa_cambio",
-    "tipo": "dd_tipo",
-    "tipo_item": "dd_tipo_item",
+    # "tipo": "dd_tipo",
+    # "tipo_item": "dd_tipo_item",
     "unidad_comercial": "dd_unidad_comercial",
     "unidad_medida": "dd_unidad_medida",
     "unidad_subpartida": "dd_unidad_subpartida",
+
+    "producto" : "dd_producto"
 }
 
 
@@ -164,6 +168,9 @@ data_semilla_pipeline = [
 
     get_date_lookup(table_name=ds_labels["fecha_revision"], field_name=property_name["fecha_revision"]),
     get_date_unwind(field_name=property_name["fecha_revision"]),
+
+    # get_lookup(),
+    # get_unwind(property_name["producto"]),
     {
         "$project": {
             #Fechas
@@ -173,6 +180,9 @@ data_semilla_pipeline = [
             fact_table_label["fecha_definitivo"]: "$" + property_name["fecha_definitivo"] + "._id",
             fact_table_label["fecha_aprobacion"]: "$" + property_name["fecha_aprobacion"] + "._id",
             fact_table_label["fecha_revision"]: "$" + property_name["fecha_revision"] + "._id",
+
+            #producto
+            # fact_table_label["producto_id"]: "$" + property_name["producto"] + "._id",
         },
     },
     {"$out": "fact_test"},
